@@ -1,0 +1,32 @@
+# Third-party software
+
+This project is MIT licensed. The image bundles the following, unmodified:
+
+## mapshot
+
+https://github.com/Palats/mapshot - Copyright Pierre Palatin, Apache License 2.0.
+
+A pinned release of the `mapshot-linux` binary is vendored into the image and
+does the rendering and serving. The Apache 2.0 licence text is at
+https://github.com/Palats/mapshot/blob/master/LICENSE.
+
+## steamCloudSaveDownloader (scsd)
+
+https://github.com/pyscsd/steamCloudSaveDownloader - MIT License.
+
+Installed from PyPI at image build time and used to pull saves from Steam
+Cloud. Its request throttling is left untouched.
+
+## Factorio
+
+https://factorio.com - Copyright Wube Software.
+
+**No Factorio game files are in this image.** The client is downloaded at
+runtime using the operator's own factorio.com account, and mods are downloaded
+from the Factorio mod portal with the same credentials. Factorio is not
+affiliated with this project.
+
+## Steam
+
+Steam is a trademark of Valve Corporation. This project is not affiliated with
+or endorsed by Valve.

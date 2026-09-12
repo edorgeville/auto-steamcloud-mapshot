@@ -1,0 +1,68 @@
+services:
+  mapshot:
+    image: ghcr.io/edorgeville/auto-steamcloud-mapshot:latest
+    container_name: factorio-mapshot
+    restart: unless-stopped
+    environment:
+      # factorio.com service credentials. Get them at https://factorio.com/profile,
+      # or copy service-username / service-token out of an existing player-data.json.
+      FACTORIO_USERNAME: ${FACTORIO_USERNAME}
+      FACTORIO_TOKEN: ${FACTORIO_TOKEN}
+
+      # Your Steam account name, used by the one-time login-steam command.
+      STEAM_USERNAME: ${STEAM_USERNAME}
+
+      # expansion = the client with Space Age, alpha = without it.
+      FACTORIO_BUILD: expansion
+      # auto re-fetches the matching client when the Deck updates the game.
+      FACTORIO_VERSION: auto
+
+      # Steam only uploads on game exit, so checking more often buys nothing.
+      RENDER_INTERVAL: 3600
+
+      # Render quality. tilemin drives resolution and cost rises very fast.
+      MAPSHOT_AREA: player
+      MAPSHOT_TILEMIN: 64
+      MAPSHOT_JPGQUALITY: 90
+      MAPSHOT_MINJPGQUALITY: 90
+      # _all_ covers every Space Age planet and platform.
+      MAPSHOT_SURFACE: _all_
+
+      SERVE_PORT: 8080
+      PUID: 1000
+      PGID: 1000
+      TZ: Europe/Paris
+    volumes:
+      # Steam session, player-data.json, render state, and the pulled saves.
+      - ./config:/config
+      # Factorio installs (several GB per version) and mods.
+      - ./data:/data
+      # The rendered site. Point a web server here if you would rather not use
+      # the built-in one.
+      - ./output:/output
+    ports:
+      - "8080:8080"
+
+    # Factorio takes its time flushing queued screenshots on SIGTERM. Docker's
+    # default 10s is not enough for it to exit cleanly; nothing is corrupted if
+    # it is cut short, but this lets it finish properly.
+    stop_grace_period: 45s
+
+    # Behind a reverse proxy, drop the ports block above and put the proxy on
+    # the same network instead. The site is static apart from /shots.json, so
+    # anything works - for example with Caddy:
+    #
+    #   map.example.com {
+    #       reverse_proxy factorio-mapshot:8080
+    #   }
+    #
+    # There is no authentication in front of the map; add it at the proxy if
+    # the map should not be public.
+
+# One-time setup, before the first `docker compose up`:
+#
+#   docker compose run --rm -it mapshot login-steam
+#
+# That prompts for your Steam password and a Steam Guard code, and writes the
+# session to ./config. The first render then downloads the Factorio client,
+# which is several gigabytes.

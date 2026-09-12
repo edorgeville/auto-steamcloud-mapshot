@@ -8,3 +8,10 @@ devenv.local.yaml
 
 # pre-commit
 .pre-commit-config.yaml
+
+# Local secrets and test volumes
+.env
+/config
+/data
+/output
+/docker-compose.yml

@@ -1,0 +1,18 @@
+[tool.ruff]
+# Matches the python3 shipped by debian:trixie-slim.
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle
+    "F",    # pyflakes
+    "W",    # warnings
+    "I",    # import order
+    "UP",   # pyupgrade
+    "B",    # bugbear
+    "S",    # bandit
+    "C4",   # comprehensions
+    "SIM",  # simplify
+    "RUF",
+]

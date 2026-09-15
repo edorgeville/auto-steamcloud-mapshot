@@ -1,4 +1,4 @@
-# factorio-mapshot-cloud
+# auto-steamcloud-mapshot
 
 Renders your Factorio save into a zoomable web map and serves it, pulling the save straight from Steam Cloud. Nothing is installed on the machine you play on, so a Steam Deck needs no modification at all.
 

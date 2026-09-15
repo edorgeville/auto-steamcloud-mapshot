@@ -7,7 +7,8 @@ This project is MIT licensed. The image bundles the following, unmodified:
 https://github.com/Palats/mapshot - Copyright Pierre Palatin, Apache License 2.0.
 
 A pinned release of the `mapshot-linux` binary is vendored into the image and
-does the rendering and serving. The Apache 2.0 licence text is at
+does the rendering, and generates the static viewer that this project serves.
+The Apache 2.0 licence text is at
 https://github.com/Palats/mapshot/blob/master/LICENSE.
 
 ## steamCloudSaveDownloader (scsd)

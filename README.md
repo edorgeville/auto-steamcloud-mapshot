@@ -85,7 +85,7 @@ Then open <http://localhost:8080>.
 |---|---|
 | `/config` | Steam session and its database, the pulled save files, `player-data.json`, render state |
 | `/data` | Factorio installs keyed by version, shared mods, render staging |
-| `/output` | The rendered site. Bind-mount this if you want to serve it yourself. |
+| `/output` | The rendered site. `current` is a symlink to the live map - point your own web server at `/output/current` if you would rather not use the built-in one. |
 
 The pulled saves live in `/config/steam` rather than `/data` because the tool that fetches them keeps its session, its database and its downloads in a single directory, and `login-steam` has to work with only `/config` mounted.
 
@@ -143,6 +143,17 @@ The 900-second floor still applies. A schedule that fires more often than that i
 
 **A pass also runs at startup, whatever the schedule says.** With a daily cron and an empty `/output`, waiting until 4am would mean serving nothing all day. If the save has not changed it is a cheap no-op.
 
+## One save, one map, at the root
+
+Each pass renders exactly one save: the most recently modified in your cloud, or whichever `SAVE_NAME` names. The map is served at `/`, so the serve port opens straight onto it with nothing to click through.
+
+Two consequences worth knowing:
+
+- **No history.** Only the newest render of that save is kept; the previous one is deleted once the new one is in place. Timelapses and snapshot history are an explicit non-goal.
+- **Maps for other saves are removed.** When the newest cloud save changes name, the previous save's map is no longer reachable and would sit there costing about a gigabyte, so publishing deletes it. If you want to keep several maps side by side, run a container per save with its own `SAVE_NAME` and its own `/output`.
+
+The viewer loads Leaflet from `unpkg.com`, so whoever opens the map needs internet access even on a LAN-only setup. That comes from mapshot's generated page, not from here.
+
 ## What happens on each wake-up
 
 Most wake-ups do nothing. The save is hashed after every pull and compared with the last render; if it is unchanged, the whole render is skipped and the log says `no change, skipping`. A restart of the container is therefore cheap: it will not re-download Factorio and will not re-render an unchanged save.
@@ -177,7 +188,7 @@ ERROR  version mismatch: the save was made with Factorio 2.0.77 but the installe
 
 **The map is missing a mod's entities** - it should not be; mods are synced to the save's own mod list before every render. If it happens, check the sync step in the log for mod portal errors.
 
-**Nothing is served at all** - `/output` is served even when no render has ever succeeded, so an empty listing means no render has completed yet. Watch the log for the render step.
+**"No map yet" placeholder** - the serve port answers before the first render completes, so this is what you get until one does. It refreshes itself every 30 seconds. Watch the log for the render step.
 
 ## Not included
 
@@ -185,4 +196,4 @@ By design: no timelapses or snapshot history, no playable server, no uploading s
 
 ## Credits
 
-[mapshot](https://github.com/Palats/mapshot) by Palats does all the rendering and serving. [steamCloudSaveDownloader](https://github.com/pyscsd/steamCloudSaveDownloader) does the Steam Cloud pulling. See [NOTICE](NOTICE).
+[mapshot](https://github.com/Palats/mapshot) by Palats does all the rendering and builds the viewer. [steamCloudSaveDownloader](https://github.com/pyscsd/steamCloudSaveDownloader) does the Steam Cloud pulling, and [cronsim](https://github.com/cuu508/cronsim) works out when the next render is due. See [NOTICE](NOTICE).

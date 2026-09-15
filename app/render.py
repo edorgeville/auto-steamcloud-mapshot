@@ -1,11 +1,13 @@
 """Running mapshot and publishing the result.
 
 mapshot's mod writes mapshot.json *before* it generates a single tile
-(mod/control.lua), and `mapshot serve` treats any directory containing a
-mapshot.json as a finished render. An interrupted render written straight into
-/output would therefore become the newest, broken, "latest" map. So renders go
-to a staging directory on /data and are published into /output only once
-mapshot has reported success.
+(mod/control.lua), so a directory can look like a finished render while it is
+still half empty. An interrupted render written straight into /output would
+therefore replace a good map with a broken one. So renders go to a staging
+directory on /data and are published into /output only once mapshot has
+reported success.
+
+Publishing also repoints /output/current, the symlink the HTTP root serves.
 """
 
 from __future__ import annotations
@@ -18,6 +20,7 @@ from . import versions, xvfb
 from .config import (
     MAPSHOT_BIN,
     MAPSHOT_PREFIX,
+    OUTPUT_CURRENT,
     OUTPUT_DIR,
     STAGING_DIR,
     WORK_DIR,
@@ -141,8 +144,46 @@ def publish(shot: Path, save: Path) -> Path:
             shutil.copy2(item, dest_save_dir / item.name)
 
     _drop_older(dest_save_dir, keep=final.name)
+    _point_current(dest_save_dir)
+    _drop_other_saves(keep=dest_save_dir)
     log.info("published to %s", final)
     return final
+
+
+def _point_current(save_dir: Path) -> None:
+    """Repoint the HTTP root at the map just published.
+
+    The swap is a rename over the old symlink, so a request either sees the
+    previous map or the new one, never neither. The target is relative so the
+    link keeps working wherever /output is mounted.
+    """
+    link = OUTPUT_CURRENT
+    staged = link.with_name(f".{link.name}-new")
+    if staged.is_symlink() or staged.exists():
+        staged.unlink()
+    staged.symlink_to(save_dir.relative_to(OUTPUT_DIR), target_is_directory=True)
+
+    if link.is_dir() and not link.is_symlink():
+        # Only possible if something else created it; a rename would fail.
+        shutil.rmtree(link)
+    staged.replace(link)
+    log.info("serving %s at the http root", save_dir.name)
+
+
+def _drop_other_saves(keep: Path) -> None:
+    """Remove maps for saves we no longer render.
+
+    Only one save is rendered at a time, so when the newest cloud save changes
+    name its predecessor becomes unreachable dead weight - roughly a gigabyte
+    of it.
+    """
+    root = OUTPUT_DIR / MAPSHOT_PREFIX.strip("/")
+    if not root.is_dir():
+        return
+    for child in root.iterdir():
+        if child.is_dir() and child != keep:
+            log.info("removing the map for %s, which is no longer rendered", child.name)
+            shutil.rmtree(child, ignore_errors=True)
 
 
 def _drop_older(save_dir: Path, keep: str) -> None:

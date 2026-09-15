@@ -11,6 +11,9 @@ FACTORIO_APPID = 427520
 CONFIG_DIR = Path(os.environ.get("CONFIG_DIR", "/config"))
 DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
 OUTPUT_DIR = Path(os.environ.get("OUTPUT_DIR", "/output"))
+# Symlink to the map currently published. This is the HTTP root, and what to
+# point your own web server at if you would rather not use the built-in one.
+OUTPUT_CURRENT = OUTPUT_DIR / "current"
 
 # scsd keeps its session, its database and every pulled save in one directory.
 # The default is under /config so `login-steam` works with only /config

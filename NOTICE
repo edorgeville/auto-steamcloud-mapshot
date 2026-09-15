@@ -17,6 +17,13 @@ https://github.com/pyscsd/steamCloudSaveDownloader - MIT License.
 Installed from PyPI at image build time and used to pull saves from Steam
 Cloud. Its request throttling is left untouched.
 
+## cronsim
+
+https://github.com/cuu508/cronsim - BSD 3-Clause License.
+
+Installed from PyPI at image build time and used to work out when the next
+render is due when `RENDER_CRON` is set.
+
 ## Factorio
 
 https://factorio.com - Copyright Wube Software.

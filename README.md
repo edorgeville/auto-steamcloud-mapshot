@@ -107,6 +107,8 @@ The pulled saves live in `/config/steam` rather than `/data` because the tool th
 | `STEAM_DIR` | `/config/steam` | Where the Steam session, its database and the pulled saves live |
 | `SAVE_NAME` | *(newest)* | Which cloud save to render. Defaults to the most recently modified. |
 | `RENDER_INTERVAL` | `3600` | Seconds between checks. Values below 900 are raised to 900. |
+| `RENDER_CRON` | - | Five-field cron expression, e.g. `0 4 * * *` for 4am daily. Replaces `RENDER_INTERVAL` when set. |
+| `TZ` | UTC | Which local time `RENDER_CRON` means |
 | `RENDER_TIMEOUT` | `14400` | Backstop in seconds. A render that overruns it is killed and reported as a failure; `/output` is left alone. |
 | `MAPSHOT_AREA` | `player` | `player`, `entities` or `all` |
 | `MAPSHOT_TILEMIN` | mapshot default | In-game units per tile at the most detailed zoom. Lower is sharper and far more expensive. |
@@ -125,6 +127,21 @@ The pulled saves live in `/config/steam` rather than `/data` because the tool th
 **Very large saves silently stop syncing.** Steam Cloud enforces a per-file size limit for Factorio in the region of 256 to 400 MB. Past it, Steam quietly stops uploading that file: no error in game, the cloud copy simply stops moving. If the map has frozen at an old timestamp while the save on your Deck keeps growing, check the size of the save. Nothing here can work around it.
 
 **Automated Steam Cloud pulling is not sanctioned by Valve.** The puller scrapes the [Steam cloud storage page](https://store.steampowered.com/account/remotestorage) rather than using an API, and throttles itself to stay well inside Steam's daily request budget, with randomised delays between requests. That throttling is deliberately left in place, and `RENDER_INTERVAL` has a hard floor of 900 seconds, so no configuration can hammer Steam's endpoints. Use at your own risk.
+
+## Scheduling
+
+By default the loop checks every `RENDER_INTERVAL` seconds. For a fixed time of day, set a cron expression instead:
+
+```yaml
+RENDER_CRON: "0 4 * * *"   # 4am daily
+TZ: Europe/Paris
+```
+
+Standard five-field cron, so `0 4 * * 1-5` is weekdays only and `0 */6 * * *` is every six hours. It runs in the container's local time, which `TZ` controls, and daylight saving is handled: a job scheduled inside the hour that the clock skips forward runs at the start of the next real hour instead. A bad expression is rejected at startup rather than silently never firing.
+
+The 900-second floor still applies. A schedule that fires more often than that is thinned rather than obeyed, so `*/5 * * * *` effectively becomes every fifteen minutes.
+
+**A pass also runs at startup, whatever the schedule says.** With a daily cron and an empty `/output`, waiting until 4am would mean serving nothing all day. If the save has not changed it is a cheap no-op.
 
 ## What happens on each wake-up
 

@@ -6,6 +6,8 @@ set -eu
 PUID="${PUID:-1000}"
 PGID="${PGID:-1000}"
 APP_USER=mapshot
+# cronsim and scsd live in the venv, so the app runs from it too.
+APP_PYTHON="${APP_PYTHON:-/opt/venv/bin/python}"
 APP_HOME=/data/home
 
 log() { printf '%s %-7s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "ENTRY" "$*" >&2; }
@@ -13,7 +15,7 @@ log() { printf '%s %-7s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "ENTRY" "$*" >&2; }
 if [ "$(id -u)" -ne 0 ]; then
     # Started with --user; nothing to set up, just run.
     export HOME="${HOME:-/tmp}"
-    exec python3 -m app "$@"
+    exec "$APP_PYTHON" -m app "$@"
 fi
 
 if ! getent group "$PGID" >/dev/null 2>&1; then
@@ -36,4 +38,4 @@ for dir in /config /data /output "$APP_HOME"; do
 done
 
 export HOME="$APP_HOME"
-exec gosu "$PUID:$PGID" python3 -m app "$@"
+exec gosu "$PUID:$PGID" "$APP_PYTHON" -m app "$@"

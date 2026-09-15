@@ -130,6 +130,7 @@ class Settings:
     scsd_rotation: int
     save_name: str
     render_interval: int
+    render_cron: str
     render_timeout: int
     serve_port: int
     mapshot: MapshotSettings = field(default_factory=MapshotSettings)
@@ -183,6 +184,9 @@ class Settings:
             scsd_rotation=max(1, _env_int("SCSD_ROTATION", 1)),
             save_name=_env("SAVE_NAME"),
             render_interval=interval,
+            # When set, this replaces RENDER_INTERVAL. Validated when the
+            # schedule is built, so a typo fails at startup.
+            render_cron=_env("RENDER_CRON"),
             # A backstop, not a budget. Renders are legitimately slow, but a
             # Factorio that never signals completion must not wedge the loop.
             render_timeout=_env_int("RENDER_TIMEOUT", 14400),

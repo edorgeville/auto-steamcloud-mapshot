@@ -19,6 +19,8 @@ services:
 
       # Steam only uploads on game exit, so checking more often buys nothing.
       RENDER_INTERVAL: 3600
+      # Or pick a time of day instead, in TZ below. Replaces RENDER_INTERVAL.
+      # RENDER_CRON: "0 4 * * *"
 
       # Render quality. tilemin drives resolution and cost rises very fast.
       MAPSHOT_AREA: player

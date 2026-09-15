@@ -9,6 +9,7 @@
 ARG MAPSHOT_VERSION=0.0.28
 ARG MAPSHOT_SHA256=e2f2d72c20272f1519f736e2f5b8d84a9241894e12a9310bf06a5fc1a0828825
 ARG SCSD_VERSION=0.0.84
+ARG CRONSIM_VERSION=2.7
 
 
 FROM debian:trixie-slim AS mapshot
@@ -27,6 +28,7 @@ RUN curl -fsSL -o /mapshot \
 
 FROM debian:trixie-slim AS venv
 ARG SCSD_VERSION
+ARG CRONSIM_VERSION
 # hadolint ignore=DL3008
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -34,7 +36,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 RUN python3 -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir --upgrade pip \
-    && /opt/venv/bin/pip install --no-cache-dir "scsd==${SCSD_VERSION}"
+    && /opt/venv/bin/pip install --no-cache-dir "scsd==${SCSD_VERSION}" "cronsim==${CRONSIM_VERSION}"
 
 
 FROM debian:trixie-slim
@@ -99,7 +101,7 @@ VOLUME ["/config", "/data", "/output"]
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD ["python3", "-m", "app", "healthcheck"]
+    CMD ["/opt/venv/bin/python", "-m", "app", "healthcheck"]
 
 ENTRYPOINT ["/usr/bin/tini", "-g", "--", "/usr/local/bin/entrypoint.sh"]
 CMD []

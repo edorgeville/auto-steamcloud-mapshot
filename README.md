@@ -4,9 +4,19 @@ Renders your Factorio save into a zoomable web map and serves it, pulling the sa
 
 It pulls the newest cloud save on an interval, installs a matching Factorio client, syncs the save's mods, renders with [mapshot](https://github.com/Palats/mapshot) under a virtual X server, and serves the result over HTTP.
 
+## 🤖 AI Disclosure
+
+This is purely vibe-coded slop. It's good enough for me, as it automates something I couldn't be bothered with setting up myself. I spend enough time in front of a computer for work, I'd rather play Factorio on my Steam Deck and prompt Claude into building some automation while I wait for my shipment of batteries to arrive at Fulgora (no I do not plan anything)!
+Published here to save the next guy a few tokens. Use at your own risk!
+
+* **Tools Used:** Claude Opus 5 (1M context)
+* **Scope of AI Assistance:** Commits contain an "Assisted-by" attribution when applicable. Spoiler: it's pretty much all of them.
+* **Human Verification:** All AI-generated code has **not** been thoroughly reviewed, security-audited, and tested by the project maintainers to ensure correctness and adherence to project standards. Again, this is vibe-coded slop.
+
+
 ## The image ships no game files
 
-There is no Factorio in this image, and no credentials. The client is downloaded at runtime from factorio.com with **your** account, and mods come from the Factorio mod portal with the same credentials. See [NOTICE](NOTICE).
+There is no Factorio in this image, and no credentials. The client is downloaded at runtime from factorio.com with **your** account, and mods come from the Factorio mod portal with the same credentials. See [NOTICE](./NOTICE).
 
 ## Before you start
 

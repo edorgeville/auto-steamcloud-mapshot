@@ -92,10 +92,14 @@ ENV PYTHONUNBUFFERED=1 \
     PGID=1000
 
 WORKDIR /app
-COPY app /app/app
+# The app changes far more often than anything else, so it goes last: an edit
+# to it then invalidates one small COPY rather than the chmod and mkdir too.
+# The chmod stays even though the file is executable in git, because losing
+# that bit in a checkout would stop the container from starting at all.
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh \
     && mkdir -p /config /data /output
+COPY app /app/app
 
 VOLUME ["/config", "/data", "/output"]
 EXPOSE 8080

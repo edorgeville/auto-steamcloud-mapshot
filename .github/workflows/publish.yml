@@ -44,5 +44,12 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # This workflow only runs on tags, and the Actions cache is scoped
+          # per ref: a cache written under refs/tags/v0.2.0 cannot be read from
+          # refs/tags/v0.3.0, so every release rebuilt from cold. Registry
+          # cache has no such scoping. gha is kept as a second source so a
+          # re-run of the same tag still hits it.
+          cache-from: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+            type=gha
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max

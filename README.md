@@ -29,7 +29,7 @@ There is no Factorio in this image, and no credentials. The client is downloaded
 | `MAPSHOT_TILEMIN` | Time | Tiles | Size |
 |---|---|---|---|
 | mapshot default | ~3.5 min | 668 | 180 MB |
-| `64` (what `docker-compose.example.yml` sets) | ~6 min | 2100 | 932 MB |
+| `64` (what [`docker-compose.example.yml`](./docker-compose.example.yml) sets) | ~6 min | 2100 | 932 MB |
 
 Lower means sharper and very much more expensive. Start with the default if you are not sure.
 
@@ -37,13 +37,34 @@ Lower means sharper and very much more expensive. Start with the default if you 
 
 ## Quick start
 
-```sh
-cp docker-compose.example.yml docker-compose.yml
-# edit the environment block, then:
+```yaml
+# docker-compose.yml
+services:
+  mapshot:
+    image: ghcr.io/edorgeville/auto-steamcloud-mapshot:latest
+    restart: unless-stopped
+    environment:
+      FACTORIO_USERNAME: your-service-username
+      FACTORIO_TOKEN: your-service-token
+      STEAM_USERNAME: your-steam-account-name
+    volumes:
+      - ./config:/config
+      - ./data:/data
+      - ./output:/output
+    ports:
+      - "8080:8080"
+    # Factorio needs longer than Docker's default 10s to flush its screenshots.
+    stop_grace_period: 45s
+```
 
+Then:
+
+```sh
 docker compose run --rm -it mapshot login-steam   # one time, interactive
 docker compose up -d
 ```
+
+[`docker-compose.example.yml`](./docker-compose.example.yml) is the same thing with every tunable spelled out and commented.
 
 `login-steam` asks for your Steam password and a Steam Guard code, and writes a password-free session to `./config`. The session lasts roughly a month from one IP address; when it expires the log says so and you run the command again.
 

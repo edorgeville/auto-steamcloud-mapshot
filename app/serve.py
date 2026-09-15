@@ -21,7 +21,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from .config import OUTPUT_CURRENT, OUTPUT_DIR, Settings
+from .config import MAPSHOT_PREFIX, OUTPUT_CURRENT, OUTPUT_DIR, Settings
 from .log import log
 from .proc import shutdown
 
@@ -46,16 +46,34 @@ PLACEHOLDER = b"""<!doctype html>
 """
 
 
+def _root() -> Path | None:
+    """The directory to serve, or None when there is no map yet."""
+    if OUTPUT_CURRENT.is_dir():
+        return OUTPUT_CURRENT
+
+    # No symlink: either nothing has been published, or this is an /output
+    # written by a version that predates it. Adopt the map if there is
+    # exactly one, so an upgrade never serves a placeholder over a render
+    # that is sitting right there.
+    published = OUTPUT_DIR / MAPSHOT_PREFIX.strip("/")
+    if published.is_dir():
+        maps = [p for p in published.iterdir() if p.is_dir() and not p.name.startswith(".")]
+        if len(maps) == 1:
+            return maps[0]
+    return None
+
+
 class _Handler(SimpleHTTPRequestHandler):
     server_version = "factorio-mapshot-cloud"
 
     def __init__(self, *args: object, **kwargs: object) -> None:
-        # Resolved per request, so the first publish is picked up without a
-        # restart.
-        super().__init__(*args, directory=str(OUTPUT_CURRENT), **kwargs)  # type: ignore[arg-type]
+        # Resolved per request, so a publish is picked up without a restart.
+        root = _root()
+        self._served_root = root
+        super().__init__(*args, directory=str(root or OUTPUT_DIR), **kwargs)  # type: ignore[arg-type]
 
     def send_head(self):
-        if not Path(self.directory).is_dir():
+        if self._served_root is None:
             return self._nothing_yet()
         return super().send_head()
 

@@ -150,6 +150,26 @@ def publish(shot: Path, save: Path) -> Path:
     return final
 
 
+def ensure_current(save: Path) -> bool:
+    """Point the HTTP root at this save's existing render, if it is not already.
+
+    Publishing is what normally creates the symlink, and an unchanged save
+    skips publishing entirely. Upgrading from a version that had no
+    /output/current therefore left a perfectly good render on disk with
+    nothing pointing at it. Returns True if the link had to be repaired.
+    """
+    save_dir = OUTPUT_DIR / MAPSHOT_PREFIX.strip("/") / save_display_name(save)
+    if not save_dir.is_dir():
+        return False
+    try:
+        if OUTPUT_CURRENT.is_symlink() and OUTPUT_CURRENT.resolve() == save_dir.resolve():
+            return False
+    except OSError:
+        pass
+    _point_current(save_dir)
+    return True
+
+
 def _point_current(save_dir: Path) -> None:
     """Repoint the HTTP root at the map just published.
 

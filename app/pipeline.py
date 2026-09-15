@@ -49,6 +49,8 @@ def _pass(settings: Settings, puller: SavePuller) -> bool:
         and save.name == state.save_name
         and render.has_render_for(save)
     ):
+        if render.ensure_current(save):
+            log.info("the existing render was not being served; repointed it")
         log.info("no change, skipping (%s, sha256 %s)", save.name, digest[:12])
         return False
 

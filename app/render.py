@@ -89,6 +89,8 @@ def render(install: Install, save: Path, settings: Settings) -> Path:
         xvfb.wrap(cmd),
         env=xvfb.env(settings.factorio_threads),
         timeout=settings.render_timeout,
+        stall_timeout=settings.render_stall_timeout,
+        progress=_staged_files,
     )
     output = result.output + "\n" + versions.read_log(install.log_file)
 
@@ -106,6 +108,11 @@ def render(install: Install, save: Path, settings: Settings) -> Path:
 def _reset(path: Path) -> None:
     shutil.rmtree(path, ignore_errors=True)
     path.mkdir(parents=True, exist_ok=True)
+
+
+def _staged_files() -> int:
+    """How many files the render has written so far; the watchdog's pulse."""
+    return sum(1 for _ in STAGING_DIR.rglob("*"))
 
 
 def _limit_threads(install: Install, threads: int) -> None:

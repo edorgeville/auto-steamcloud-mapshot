@@ -101,7 +101,8 @@ def _attempt(install: installs.Install, save: Path, settings: Settings) -> Path:
     except Timeout as exc:
         raise PipelineError(
             f"render failed: {exc}. Nothing was written to the output. Raise "
-            "RENDER_TIMEOUT if this map legitimately needs longer."
+            "RENDER_TIMEOUT or RENDER_STALL_TIMEOUT if this map legitimately "
+            "needs longer."
         ) from exc
 
 

@@ -109,11 +109,14 @@ def run(
     on_line: Callable[[str], None] | None = None,
     capture_limit: int = 512_000,
     timeout: float | None = None,
+    stall_timeout: float | None = None,
+    progress: Callable[[], object] | None = None,
 ) -> Result:
     """Run a command, streaming its merged output, and return the result.
 
     Raises Terminated if the command was cut short by a shutdown signal, or
-    Timeout if it overran `timeout` seconds and had to be killed.
+    Timeout if it overran `timeout` seconds, or if `progress()` kept returning
+    the same value for `stall_timeout` seconds, and had to be killed.
     """
     argv = [str(part) for part in cmd]
     log.debug("exec: %s", " ".join(argv))
@@ -132,19 +135,32 @@ def run(
     pgid = proc.pid
     _register(pgid)
 
-    timed_out = threading.Event()
-    watchdog: threading.Timer | None = None
-    if timeout is not None:
-        def expire() -> None:
-            timed_out.set()
-            log.error("%s exceeded its %.0fs deadline, killing it", argv[0], timeout)
+    reason: list[str] = []
+    done = threading.Event()
+
+    def watch() -> None:
+        start = moved = time.monotonic()
+        last = progress() if progress else None
+        while not done.wait(5):
+            now = time.monotonic()
+            if progress is not None:
+                cur = progress()
+                if cur != last:
+                    last, moved = cur, now
+            if timeout is not None and now - start > timeout:
+                reason.append(f"exceeded its {timeout:.0f}s deadline")
+            elif stall_timeout is not None and now - moved > stall_timeout:
+                reason.append(f"made no progress for {stall_timeout:.0f}s")
+            else:
+                continue
+            log.error("%s %s, killing it", argv[0], reason[0])
             _signal_group(pgid, signal.SIGTERM)
             time.sleep(TERM_GRACE_SECONDS)
             _signal_group(pgid, signal.SIGKILL)
+            return
 
-        watchdog = threading.Timer(timeout, expire)
-        watchdog.daemon = True
-        watchdog.start()
+    if timeout is not None or stall_timeout is not None:
+        threading.Thread(target=watch, name="watchdog", daemon=True).start()
 
     chunks: list[str] = []
     size = 0
@@ -160,14 +176,13 @@ def run(
                 on_line(line)
         returncode = proc.wait()
     finally:
-        if watchdog is not None:
-            watchdog.cancel()
+        done.set()
         _unregister(pgid)
 
     if shutdown.is_set():
         raise Terminated(f"{argv[0]} was terminated during shutdown")
-    if timed_out.is_set():
-        raise Timeout(f"{argv[0]} exceeded its {timeout:.0f}s deadline")
+    if reason:
+        raise Timeout(f"{argv[0]} {reason[0]}")
 
     return Result(returncode=returncode, output="\n".join(chunks))
 

@@ -136,6 +136,7 @@ class Settings:
     render_interval: int
     render_cron: str
     render_timeout: int
+    render_stall_timeout: int
     pull_timeout: int
     serve_port: int
     mapshot: MapshotSettings = field(default_factory=MapshotSettings)
@@ -200,6 +201,9 @@ class Settings:
             # A backstop, not a budget. Renders are legitimately slow, but a
             # Factorio that never signals completion must not wedge the loop.
             render_timeout=_env_int("RENDER_TIMEOUT", 14400),
+            # A Factorio that keeps spinning without writing tiles is wedged;
+            # this catches it long before RENDER_TIMEOUT would.
+            render_stall_timeout=_env_int("RENDER_STALL_TIMEOUT", 600),
             # scsd reads Steam without a socket timeout; a connection that dies
             # mid-request hangs it forever and the loop with it.
             pull_timeout=_env_int("PULL_TIMEOUT", 1800),

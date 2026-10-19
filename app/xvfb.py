@@ -24,8 +24,8 @@ def wrap(cmd: Sequence[str | Path]) -> list[str]:
     ]
 
 
-def env() -> dict[str, str]:
-    """Environment for a software-rendered Factorio.
+def env(threads: int) -> dict[str, str]:
+    """Environment for a software-rendered Factorio on `threads` threads.
 
     Measured on this image (Debian trixie, Mesa 25.0.7): llvmpipe is selected
     on its own and reports GL 4.5 core with direct rendering, so neither of
@@ -37,4 +37,6 @@ def env() -> dict[str, str]:
     merged = dict(os.environ)
     merged.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
     merged.setdefault("GALLIUM_DRIVER", "llvmpipe")
+    # llvmpipe otherwise rasterises on one thread per core.
+    merged.setdefault("LP_NUM_THREADS", str(threads))
     return merged

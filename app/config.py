@@ -128,6 +128,7 @@ class Settings:
     factorio_version: str
     factorio_extra_args: str
     factorio_keep_versions: int
+    factorio_threads: int
     steam_username: str
     steam_2fa: str
     scsd_rotation: int
@@ -181,6 +182,11 @@ class Settings:
             factorio_version=_env("FACTORIO_VERSION", "auto"),
             factorio_extra_args=_env("FACTORIO_EXTRA_ARGS"),
             factorio_keep_versions=max(1, _env_int("FACTORIO_KEEP_VERSIONS", 2)),
+            # Factorio and Mesa each default to one thread per core, which
+            # starves everything else on the host. Leave a core free.
+            factorio_threads=max(
+                1, _env_int("FACTORIO_THREADS", (os.cpu_count() or 2) - 1)
+            ),
             steam_username=_env("STEAM_USERNAME"),
             steam_2fa=two_fa,
             # Only the newest save is ever rendered, so keeping older copies of

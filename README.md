@@ -101,6 +101,7 @@ The pulled saves live in `/config/steam` rather than `/data` because the tool th
 | `FACTORIO_VERSION` | `auto` | `auto`, an explicit version like `2.0.77`, or `stable` / `latest` |
 | `FACTORIO_KEEP_VERSIONS` | `2` | How many installed clients to keep before pruning the least recently used |
 | `FACTORIO_EXTRA_ARGS` | - | Extra arguments passed to Factorio, space separated |
+| `FACTORIO_THREADS` | cores - 1 | Threads Factorio and the software rasteriser may use. The default leaves one core for whatever else shares the host. |
 | `STEAM_USERNAME` | - | Your Steam account name, for `login-steam` |
 | `STEAM_2FA` | `mobile` | `mobile` or `mail`, matching how Steam sends your Guard code |
 | `SCSD_ROTATION` | `1` | Versions of each cloud file kept. `1` keeps only the current one. |

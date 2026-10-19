@@ -12,6 +12,7 @@ Publishing also repoints /output/current, the symlink the HTTP root serves.
 
 from __future__ import annotations
 
+import configparser
 import re
 import shutil
 from pathlib import Path
@@ -56,6 +57,7 @@ def render(install: Install, save: Path, settings: Settings) -> Path:
     """Render into staging and return the produced shot directory."""
     _reset(STAGING_DIR)
     _reset(WORK_DIR)
+    _limit_threads(install, settings.factorio_threads)
 
     cmd = [
         MAPSHOT_BIN,
@@ -83,7 +85,11 @@ def render(install: Install, save: Path, settings: Settings) -> Path:
         "while it works",
         save.name,
     )
-    result = run(xvfb.wrap(cmd), env=xvfb.env(), timeout=settings.render_timeout)
+    result = run(
+        xvfb.wrap(cmd),
+        env=xvfb.env(settings.factorio_threads),
+        timeout=settings.render_timeout,
+    )
     output = result.output + "\n" + versions.read_log(install.log_file)
 
     mismatch = versions.find(output)
@@ -100,6 +106,32 @@ def render(install: Install, save: Path, settings: Settings) -> Path:
 def _reset(path: Path) -> None:
     shutil.rmtree(path, ignore_errors=True)
     path.mkdir(parents=True, exist_ok=True)
+
+
+def _limit_threads(install: Install, threads: int) -> None:
+    """Cap Factorio's thread pools through its config.ini.
+
+    There is no command-line equivalent. Factorio reads and rewrites
+    <install>/config/config.ini itself, so dropping its comments here is
+    harmless; they come back on the next run.
+    """
+    path = install.root / "config" / "config.ini"
+    ini = configparser.ConfigParser(interpolation=None, strict=False)
+    ini.read(path)
+    for section, key in (
+        ("graphics", "max-threads"),
+        ("graphics", "screenshots-threads-count"),
+        # Defaults to 32: that many decoders at once is a disk and memory
+        # storm before the render has even begun.
+        ("graphics", "max-sprite-loading-threads"),
+        ("other", "update-runner-threads-count"),
+    ):
+        if not ini.has_section(section):
+            ini.add_section(section)
+        ini[section][key] = str(threads)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w") as fh:
+        ini.write(fh, space_around_delimiters=False)
 
 
 def _locate_shot(output: str, save: Path) -> Path:

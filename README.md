@@ -110,6 +110,7 @@ The pulled saves live in `/config/steam` rather than `/data` because the tool th
 | `RENDER_CRON` | - | Five-field cron expression, e.g. `0 4 * * *` for 4am daily. Replaces `RENDER_INTERVAL` when set. |
 | `TZ` | UTC | Which local time `RENDER_CRON` means |
 | `RENDER_TIMEOUT` | `14400` | Backstop in seconds. A render that overruns it is killed and reported as a failure; `/output` is left alone. |
+| `PULL_TIMEOUT` | `1800` | Backstop in seconds for the Steam pull. A pull that overruns it is killed and the pass is skipped. |
 | `MAPSHOT_AREA` | `player` | `player`, `entities` or `all` |
 | `MAPSHOT_TILEMIN` | mapshot default | In-game units per tile at the most detailed zoom. Lower is sharper and far more expensive. |
 | `MAPSHOT_TILEMAX` | mapshot default | In-game units per tile at the least detailed zoom |

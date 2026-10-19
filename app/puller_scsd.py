@@ -11,7 +11,7 @@ from pathlib import Path
 
 from .config import FACTORIO_APPID, SCSD_BIN, SCSD_CONF, STEAM_DIR, Settings
 from .log import log
-from .proc import run, run_interactive
+from .proc import Result, Timeout, run, run_interactive
 from .puller import PullError
 
 # steamCloudSaveDownloader/err.py
@@ -87,19 +87,27 @@ class ScsdPuller:
 
     def pull(self) -> None:
         self.write_config()
-        result = run([SCSD_BIN, "-f", SCSD_CONF])
-        if result.ok:
-            return
-
-        if result.returncode == LOCK_EXIT:
-            lock = STEAM_DIR / SCSD_LOCK
-            log.warning("clearing stale scsd lock %s and retrying once", lock)
-            lock.unlink(missing_ok=True)
-            result = run([SCSD_BIN, "-f", SCSD_CONF])
+        try:
+            result = self._run()
             if result.ok:
                 return
 
+            if result.returncode == LOCK_EXIT:
+                lock = STEAM_DIR / SCSD_LOCK
+                log.warning("clearing stale scsd lock %s and retrying once", lock)
+                lock.unlink(missing_ok=True)
+                result = self._run()
+                if result.ok:
+                    return
+        except Timeout as exc:
+            # A killed scsd leaves .scsd.lock behind; the LOCK_EXIT path above
+            # clears it on the next pass.
+            raise PullError(f"{exc}; raise PULL_TIMEOUT if Steam is just slow") from exc
+
         raise PullError(describe_exit(result.returncode))
+
+    def _run(self) -> Result:
+        return run([SCSD_BIN, "-f", SCSD_CONF], timeout=self.settings.pull_timeout)
 
     def saves(self) -> list[Path]:
         if not self.app_dir.is_dir():

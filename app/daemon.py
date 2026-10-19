@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+import contextlib
 import datetime as dt
 import threading
+import time
+from pathlib import Path
 
 from . import pipeline, schedule, serve
 from .config import Settings
 from .log import log
 from .proc import Terminated, shutdown
+
+# Epoch seconds of the pass the loop is running or waiting for. The healthcheck
+# treats a loop that is far past it as wedged.
+HEARTBEAT_FILE = Path("/tmp/mapshot-cloud-heartbeat")  # noqa: S108 - container-local marker
 
 
 def run(settings: Settings) -> int:
@@ -26,6 +33,7 @@ def run(settings: Settings) -> int:
     # An unchanged save makes it a cheap no-op anyway.
     log.info("render loop started, running %s", plan.description)
     while not shutdown.is_set():
+        _beat(time.time())
         try:
             pipeline.run_once(settings)
         except Terminated:
@@ -54,9 +62,27 @@ def _wait(plan: schedule.Schedule) -> bool:
         return True
 
     delay = max(0.0, (upcoming - now).total_seconds())
+    _beat(upcoming.timestamp())
     log.info(
         "next check at %s (in %s)",
         upcoming.strftime("%Y-%m-%d %H:%M:%S %Z"),
         schedule.describe_delay(delay),
     )
     return shutdown.wait(delay)
+
+
+def _beat(when: float) -> None:
+    with contextlib.suppress(OSError):
+        HEARTBEAT_FILE.write_text(f"{when:.0f}")
+
+
+def stale(settings: Settings, now: float | None = None) -> bool:
+    """True when the loop is far past the pass it last announced."""
+    try:
+        due = float(HEARTBEAT_FILE.read_text())
+    except (OSError, ValueError):
+        return False
+    # A pass is bounded by its pull and render deadlines; well past both, the
+    # loop is stuck on something without a timeout.
+    grace = settings.pull_timeout + 2 * settings.render_timeout
+    return (now or time.time()) > due + grace

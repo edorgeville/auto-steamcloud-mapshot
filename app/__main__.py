@@ -101,10 +101,15 @@ def _healthcheck() -> int:
     if mode not in SERVING_MODES:
         return 0
     try:
-        port = Settings.from_env().serve_port
+        settings = Settings.from_env()
     except ConfigError:
         return 1
-    return 0 if serve.healthy(port) else 1
+    if not serve.healthy(settings.serve_port):
+        return 1
+    if mode == "daemon" and daemon.stale(settings):
+        log.error("render loop has not run its scheduled pass; reporting unhealthy")
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

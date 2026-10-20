@@ -33,6 +33,9 @@ from .proc import run
 from .versions import Mismatch
 
 OUTPUT_LINE = re.compile(r"^Output:\s*(?P<path>.+)$", re.MULTILINE)
+# mapshot's mod announces every zoom level of every surface this way before
+# the first screenshot; their sum is the tile total.
+TILES_LINE = re.compile(r"Tile size \d+: (\d+) tiles to generate")
 SHOT_DIR = "d-*"
 
 
@@ -85,12 +88,25 @@ def render(install: Install, save: Path, settings: Settings) -> Path:
         "while it works",
         save.name,
     )
+    expected = 0
+
+    def count_expected(line: str) -> None:
+        nonlocal expected
+        match = TILES_LINE.search(line)
+        if match:
+            expected += int(match.group(1))
+
+    def report(written: object) -> None:
+        log.info("%s of ~%s tiles written", written, expected or "?")
+
     result = run(
         xvfb.wrap(cmd),
         env=xvfb.env(settings.factorio_threads),
         timeout=settings.render_timeout,
         stall_timeout=settings.render_stall_timeout,
-        progress=_staged_files,
+        progress=_staged_tiles,
+        on_line=count_expected,
+        on_progress=report,
     )
     output = result.output + "\n" + versions.read_log(install.log_file)
 
@@ -110,9 +126,9 @@ def _reset(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
-def _staged_files() -> int:
-    """How many files the render has written so far; the watchdog's pulse."""
-    return sum(1 for _ in STAGING_DIR.rglob("*"))
+def _staged_tiles() -> int:
+    """How many tiles the render has written so far; the watchdog's pulse."""
+    return sum(1 for _ in STAGING_DIR.rglob("*.jpg"))
 
 
 def _limit_threads(install: Install, threads: int) -> None:

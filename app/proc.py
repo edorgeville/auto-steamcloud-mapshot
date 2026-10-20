@@ -20,6 +20,7 @@ from pathlib import Path
 from .log import log
 
 TERM_GRACE_SECONDS = 20
+PROGRESS_INTERVAL = 60
 
 shutdown = threading.Event()
 
@@ -111,12 +112,15 @@ def run(
     timeout: float | None = None,
     stall_timeout: float | None = None,
     progress: Callable[[], object] | None = None,
+    on_progress: Callable[[object], None] | None = None,
 ) -> Result:
     """Run a command, streaming its merged output, and return the result.
 
     Raises Terminated if the command was cut short by a shutdown signal, or
     Timeout if it overran `timeout` seconds, or if `progress()` kept returning
     the same value for `stall_timeout` seconds, and had to be killed.
+    `on_progress` gets the latest `progress()` value when it has changed, at
+    most once per PROGRESS_INTERVAL seconds.
     """
     argv = [str(part) for part in cmd]
     log.debug("exec: %s", " ".join(argv))
@@ -139,14 +143,17 @@ def run(
     done = threading.Event()
 
     def watch() -> None:
-        start = moved = time.monotonic()
-        last = progress() if progress else None
+        start = moved = reported = time.monotonic()
+        last = shown = progress() if progress else None
         while not done.wait(5):
             now = time.monotonic()
             if progress is not None:
                 cur = progress()
                 if cur != last:
                     last, moved = cur, now
+                if on_progress and cur != shown and now - reported >= PROGRESS_INTERVAL:
+                    on_progress(cur)
+                    shown, reported = cur, now
             if timeout is not None and now - start > timeout:
                 reason.append(f"exceeded its {timeout:.0f}s deadline")
             elif stall_timeout is not None and now - moved > stall_timeout:
@@ -159,7 +166,7 @@ def run(
             _signal_group(pgid, signal.SIGKILL)
             return
 
-    if timeout is not None or stall_timeout is not None:
+    if timeout is not None or stall_timeout is not None or on_progress is not None:
         threading.Thread(target=watch, name="watchdog", daemon=True).start()
 
     chunks: list[str] = []

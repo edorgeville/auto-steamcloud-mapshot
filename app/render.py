@@ -116,7 +116,7 @@ def _staged_files() -> int:
 
 
 def _limit_threads(install: Install, threads: int) -> None:
-    """Cap Factorio's thread pools through its config.ini.
+    """Pin Factorio's thread pools and memory appetite through its config.ini.
 
     There is no command-line equivalent. Factorio reads and rewrites
     <install>/config/config.ini itself, so dropping its comments here is
@@ -125,17 +125,24 @@ def _limit_threads(install: Install, threads: int) -> None:
     path = install.root / "config" / "config.ini"
     ini = configparser.ConfigParser(interpolation=None, strict=False)
     ini.read(path)
-    for section, key in (
-        ("graphics", "max-threads"),
-        ("graphics", "screenshots-threads-count"),
+    values = {
+        ("graphics", "max-threads"): threads,
+        ("graphics", "screenshots-threads-count"): threads,
         # Defaults to 32: that many decoders at once is a disk and memory
         # storm before the render has even begun.
-        ("graphics", "max-sprite-loading-threads"),
-        ("other", "update-runner-threads-count"),
-    ):
+        ("graphics", "max-sprite-loading-threads"): threads,
+        ("other", "update-runner-threads-count"): threads,
+        # llvmpipe reports tens of GB of "video memory", all of it system
+        # RAM, and Factorio answers with its very-high preset: full-size
+        # sprites, every atlas resident, 5 GB+ for a Space Age save. Medium
+        # sprites are still twice what the finest mapshot tile can show.
+        ("graphics", "graphics-quality"): "medium",
+        ("graphics", "video-memory-usage"): "low",
+    }
+    for (section, key), value in values.items():
         if not ini.has_section(section):
             ini.add_section(section)
-        ini[section][key] = str(threads)
+        ini[section][key] = str(value)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w") as fh:
         ini.write(fh, space_around_delimiters=False)

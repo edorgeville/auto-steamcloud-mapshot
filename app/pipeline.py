@@ -93,7 +93,9 @@ def _attempt(install: installs.Install, save: Path, settings: Settings) -> Path:
     from .proc import Timeout
 
     try:
-        output = mods.sync(install, save, timeout=settings.render_timeout)
+        output = mods.sync(
+            install, save, settings.factorio_threads, timeout=settings.render_timeout
+        )
         mismatch = versions.find(output)
         if mismatch:
             raise render.VersionMismatch(mismatch)

@@ -20,12 +20,12 @@ class ModSyncError(Exception):
     """Syncing mods failed for a reason that is not a version mismatch."""
 
 
-def sync(install: Install, save: Path, timeout: float | None = None) -> str:
+def sync(install: Install, save: Path, threads: int, timeout: float | None = None) -> str:
     """Sync mods to the save's mod list. Returns the merged command output."""
     log.info("syncing mods to the save's mod list")
     result = run(
         xvfb.wrap([install.binary, "--sync-mods", save]),
-        env=xvfb.env(),
+        env=xvfb.env(threads),
         timeout=timeout,
     )
     output = result.output + "\n" + versions.read_log(install.log_file)

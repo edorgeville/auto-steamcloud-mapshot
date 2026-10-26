@@ -24,6 +24,11 @@ RUN curl -fsSL -o /mapshot \
       "https://github.com/Palats/mapshot/releases/download/${MAPSHOT_VERSION}/mapshot-linux" \
     && echo "${MAPSHOT_SHA256}  /mapshot" | sha256sum -c - \
     && chmod +x /mapshot
+# mapshot 0.0.28 embeds its mod with factorio_version 2.0, which Factorio 2.1
+# refuses to load. Same-length byte patch of the embedded info.json; drop it
+# once upstream ships a 2.1 mod. The grep fails the build if the string moves.
+RUN grep -c '"factorio_version": "2.0"' /mapshot \
+    && sed -i 's/"factorio_version": "2.0"/"factorio_version": "2.1"/' /mapshot
 
 
 FROM debian:trixie-slim AS venv

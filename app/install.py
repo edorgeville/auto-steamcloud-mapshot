@@ -178,13 +178,22 @@ def _link_script_output(install: Install) -> None:
     _relink(install.root / "script-output", STAGING_DIR)
 
 
-def _link_mods(install: Install) -> None:
-    MODS_DIR.mkdir(parents=True, exist_ok=True)
-    mod_list = MODS_DIR / "mod-list.json"
-    if not mod_list.exists():
-        # mapshot's CopyMods refuses to run without this file.
-        mod_list.write_text(json.dumps({"mods": [{"name": "base", "enabled": True}]}) + "\n")
+def reset_mod_list() -> None:
+    """Enable base only. --sync-mods rebuilds the list from the save.
 
+    The mods dir is shared across Factorio versions, so after a version jump
+    the list still enables zips built for the old game, and the new client
+    refuses to start (let alone sync) with them enabled. mapshot's CopyMods
+    also refuses to run without this file.
+    """
+    MODS_DIR.mkdir(parents=True, exist_ok=True)
+    (MODS_DIR / "mod-list.json").write_text(
+        json.dumps({"mods": [{"name": "base", "enabled": True}]}) + "\n"
+    )
+
+
+def _link_mods(install: Install) -> None:
+    reset_mod_list()
     _relink(install.mods_dir, MODS_DIR)
 
 

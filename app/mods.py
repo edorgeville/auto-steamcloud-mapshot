@@ -11,7 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from . import versions, xvfb
-from .install import Install
+from .install import Install, reset_mod_list
 from .log import log
 from .proc import run
 
@@ -23,6 +23,7 @@ class ModSyncError(Exception):
 def sync(install: Install, save: Path, threads: int, timeout: float | None = None) -> str:
     """Sync mods to the save's mod list. Returns the merged command output."""
     log.info("syncing mods to the save's mod list")
+    reset_mod_list()
     result = run(
         xvfb.wrap([install.binary, "--sync-mods", save]),
         env=xvfb.env(threads),

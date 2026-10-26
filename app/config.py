@@ -27,7 +27,6 @@ LOCK_FILE = CONFIG_DIR / "render.lock"
 PLAYER_DATA = CONFIG_DIR / "player-data.json"
 
 INSTALLS_DIR = DATA_DIR / "factorio"
-MODS_DIR = DATA_DIR / "mods"
 STAGING_DIR = DATA_DIR / "staging"
 WORK_DIR = DATA_DIR / "work"
 

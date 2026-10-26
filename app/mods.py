@@ -23,7 +23,7 @@ class ModSyncError(Exception):
 def sync(install: Install, save: Path, threads: int, timeout: float | None = None) -> str:
     """Sync mods to the save's mod list. Returns the merged command output."""
     log.info("syncing mods to the save's mod list")
-    reset_mod_list()
+    reset_mod_list(install)
     result = run(
         xvfb.wrap([install.binary, "--sync-mods", save]),
         env=xvfb.env(threads),

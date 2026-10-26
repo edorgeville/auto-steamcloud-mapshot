@@ -18,7 +18,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from .config import INSTALLS_DIR, MODS_DIR, PLAYER_DATA, STAGING_DIR, Settings
+from .config import INSTALLS_DIR, PLAYER_DATA, STAGING_DIR, Settings
 from .log import log
 from .proc import Terminated, shutdown
 from .releases import DownloadError, open_download
@@ -161,7 +161,7 @@ def _log_progress(done: int, total: int) -> None:
 def _prepare(install: Install, settings: Settings) -> None:
     (install.root / "saves").mkdir(exist_ok=True)
     _link_script_output(install)
-    _link_mods(install)
+    _prepare_mods(install)
     _write_player_data(install, settings)
 
 
@@ -178,23 +178,24 @@ def _link_script_output(install: Install) -> None:
     _relink(install.root / "script-output", STAGING_DIR)
 
 
-def reset_mod_list() -> None:
+def reset_mod_list(install: Install) -> None:
     """Enable base only. --sync-mods rebuilds the list from the save.
 
-    The mods dir is shared across Factorio versions, so after a version jump
-    the list still enables zips built for the old game, and the new client
-    refuses to start (let alone sync) with them enabled. mapshot's CopyMods
-    also refuses to run without this file.
+    mapshot's CopyMods refuses to run without this file.
     """
-    MODS_DIR.mkdir(parents=True, exist_ok=True)
-    (MODS_DIR / "mod-list.json").write_text(
+    install.mods_dir.mkdir(exist_ok=True)
+    (install.mods_dir / "mod-list.json").write_text(
         json.dumps({"mods": [{"name": "base", "enabled": True}]}) + "\n"
     )
 
 
-def _link_mods(install: Install) -> None:
-    reset_mod_list()
-    _relink(install.mods_dir, MODS_DIR)
+def _prepare_mods(install: Install) -> None:
+    # Mods live per Factorio version. A shared dir (pre-0.4.3) left zips built
+    # for the old game in place, and --sync-mods on the new client loads what
+    # is present by name before it fetches anything, so it died on them.
+    if install.mods_dir.is_symlink():
+        install.mods_dir.unlink()
+    reset_mod_list(install)
 
 
 def _relink(link: Path, target: Path) -> None:

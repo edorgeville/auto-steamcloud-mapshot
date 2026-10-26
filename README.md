@@ -84,7 +84,7 @@ Then open <http://localhost:8080>.
 | Path | Contents |
 |---|---|
 | `/config` | Steam session and its database, the pulled save files, `player-data.json`, render state |
-| `/data` | Factorio installs keyed by version, shared mods, render staging |
+| `/data` | Factorio installs keyed by version (each with its own mods), render staging |
 | `/output` | The rendered site. `current` is a symlink to the live map - point your own web server at `/output/current` if you would rather not use the built-in one. |
 
 The pulled saves live in `/config/steam` rather than `/data` because the tool that fetches them keeps its session, its database and its downloads in a single directory, and `login-steam` has to work with only `/config` mounted.
